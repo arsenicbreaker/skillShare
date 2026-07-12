@@ -29,6 +29,7 @@ return new class extends Migration
             $table->boolean('is_onboarded')->default(false);
             $table->string('whatsapp')->nullable();
             $table->string('discord')->nullable();
+            $table->string('telegram')->nullable(); 
             $table->timestamps();
         });
 
@@ -54,7 +55,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
+        // Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }
 };

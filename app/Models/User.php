@@ -25,6 +25,7 @@ use Illuminate\Notifications\Notifiable;
     'is_onboarded',
     'whatsapp',
     'discord',
+    'telegram',
 ])]
 #[Hidden(['password'])]
 class User extends Authenticatable
