@@ -10,7 +10,7 @@ use App\Http\Controllers\SkillController;
 
 // Landing Page
 Route::get('/', function () {
-    return view('landing');
+    return view('welcome');
 })->name('landing');
 
 // Auth

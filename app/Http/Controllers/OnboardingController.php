@@ -19,7 +19,8 @@ class OnboardingController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('onboarding.step1');
+        $user = Auth::user();
+        return view('onboarding.step1', compact('user'));
     }
 
     public function step1Save(Request $request)
@@ -29,18 +30,19 @@ class OnboardingController extends Controller
         }
 
         $request->validate([
-            'name'       => 'required|string|max:255',
+            'name' => 'required|string|min:3|max:255',
             'photo'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'university' => 'required|string|max:255',
             'major'      => 'required|string|max:255',
             'semester'   => 'required|integer|min:1|max:8',
             'city'       => 'nullable|string|max:255',
             'bio'        => 'nullable|string|max:500',
-            'whatsapp'   => 'nullable|string|max:20',
+            'whatsapp'   => 'nullable|digits_between:10,13',
             'discord'    => 'nullable|string|max:50',
             'telegram'   => 'nullable|string|max:50',
         ], [
             'name.required'       => 'Nama wajib diisi.',
+            'name.min'            => 'Nama minimal 3 karakter.',
             'name.max'            => 'Nama maksimal 255 karakter.',
             'photo.image'         => 'File harus berupa gambar.',
             'photo.mimes'         => 'Format foto harus jpg, jpeg, png, atau webp.',
@@ -52,7 +54,7 @@ class OnboardingController extends Controller
             'semester.max'        => 'Semester maksimal 8.',
             'city.max'            => 'Kota maksimal 255 karakter.',
             'bio.max'             => 'Bio maksimal 500 karakter.',
-            'whatsapp.max'        => 'Nomor WhatsApp maksimal 20 karakter.',
+            'whatsapp.digits_between' => 'Nomor WhatsApp harus 10-13 digit angka.',
             'discord.max'         => 'Username Discord maksimal 50 karakter.',
             'telegram.max'        => 'Username Telegram maksimal 50 karakter.',
         ]);
