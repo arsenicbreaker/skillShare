@@ -234,6 +234,8 @@
             ->values()
             ->all();
 
+        $partnerXp = $partnerUser->xpMeta();
+
         return [
             'id' => $partnerUser->id,
             'name' => $partnerUser->name,
@@ -250,6 +252,9 @@
             'categories' => $categoryNames,
             'categories_text' => implode(',', $categoryNames),
             'match' => (int) ($partnerUser->match_percent ?? 0),
+            'level' => $partnerXp['level'],
+            'badge' => $partnerXp['badge'],
+            'xp' => $partnerXp['xp'],
             'same_campus' => filled($authUser->university)
                 && filled($partnerUser->university)
                 && strcasecmp($partnerUser->university, $authUser->university) === 0,
@@ -373,7 +378,13 @@
                         class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
                         <div class="flex items-center justify-between gap-4">
-                            <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $partner['match'] }}% match</span>
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground"
+                                title="{{ $partner['badge']['nama'] }} · {{ number_format($partner['xp']) }} XP"
+                            >
+                                <i class="{{ $partner['badge']['icon'] }} text-[11px] text-white/70"></i>
+                                Lv.{{ $partner['level'] }}
+                            </span>
                             @if ($partner['city'])
                                 <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
                             @endif
@@ -466,7 +477,13 @@
                             class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                         >
                             <div class="flex items-center justify-between gap-4">
-                                <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $partner['match'] }}% match</span>
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground"
+                                    title="{{ $partner['badge']['nama'] }} · {{ number_format($partner['xp']) }} XP"
+                                >
+                                    <i class="{{ $partner['badge']['icon'] }} text-[11px] text-white/70"></i>
+                                    Lv.{{ $partner['level'] }}
+                                </span>
                                 @if ($partner['city'])
                                     <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
                                 @endif
