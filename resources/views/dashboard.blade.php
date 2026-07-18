@@ -303,17 +303,6 @@
                 </button>
             </div>
 
-            <div class="scrollbar-hidden mt-5 flex gap-2 overflow-x-auto pb-1">
-                <template x-for="item in categories" :key="item">
-                    <button
-                        type="button"
-                        @click="category = item"
-                        :class="category === item ? 'bg-white text-black' : 'surface-soft text-muted-foreground hover:text-foreground'"
-                        class="whitespace-nowrap rounded-full px-4 py-2 text-sm transition"
-                        x-text="item"
-                    ></button>
-                </template>
-            </div>
         </section>
 
         <div class="dotted-divider"></div>
@@ -552,7 +541,6 @@
                 offerSkill: 'Laravel',
                 message: 'Halo! Aku tertarik belajar bareng. Kita bisa saling tukar skill dan atur jadwal yang nyaman.'
             },
-            categories: ['Semua', 'Frontend', 'Backend', 'Design', 'Data', 'Language'],
             incomingRequests: [
                 { id: 1, name: 'Nadia Yusuf', username: 'nadia', offer: 'Figma', learn: 'Laravel', status: 'Menunggu' },
                 { id: 2, name: 'Raka Aditya', username: 'raka', offer: 'Public Speaking', learn: 'UI/UX', status: 'Menunggu' },
