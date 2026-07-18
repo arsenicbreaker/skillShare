@@ -902,7 +902,7 @@
     <div class="stars-bg" id="stars-hero"></div>
 
     <div class="badge-float glass badge-float-1">
-        <p class="badge-title"><i class="bi bi-star-fill" style="color:#facc15"></i> +50 XP</p>
+        <p class="badge-title"><i class="bi bi-star-fill" style="color:#facc15"></i> +10 XP</p>
         <p class="badge-sub">Profil dibuat!</p>
     </div>
     <div class="badge-float glass badge-float-2">

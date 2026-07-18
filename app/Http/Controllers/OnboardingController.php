@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\User;
 use App\Models\UserSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -144,7 +145,7 @@ class OnboardingController extends Controller
 
         if (!$user->is_onboarded) {
             $user->update(['is_onboarded' => true]);
-            $user->addXp(50);
+            $user->addXp(User::XP_ONBOARDING);
         }
 
         return redirect()->route('dashboard');

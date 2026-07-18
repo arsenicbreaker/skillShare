@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -201,11 +202,19 @@
         return asset('storage/' . ltrim($photo, '/'));
     };
 
+    $xpMeta = $authUser->xpMeta();
+
     $user = [
         'name' => $authUser->name,
         'initials' => $makeInitials($authUser->name),
         'photo_url' => $photoUrl($authUser->photo),
-        'xp' => $authUser->xp ?? 0,
+        'xp' => $xpMeta['xp'],
+        'level' => $xpMeta['level'],
+        'badge' => $xpMeta['badge'],
+        'xp_progress' => $xpMeta['xp_progress'],
+        'next_level' => $xpMeta['next_level'],
+        'next_level_xp' => $xpMeta['next_level_xp'],
+        'is_max_level' => $xpMeta['is_max_level'],
         'university' => $authUser->university ?? '',
         'city' => $authUser->city ?? '',
     ];
@@ -234,6 +243,7 @@
             'city' => $partnerUser->city ?: '',
             'bio' => $partnerUser->bio ?: 'Belum ada bio.',
             'skill' => $primarySkill?->name ?? 'Belum ada skill',
+            'skill_id' => $primarySkill?->id,
             'skills' => $skillNames,
             'skills_text' => strtolower(implode(' ', $skillNames)),
             'category' => $primarySkill?->category?->name ?? '',
@@ -270,9 +280,23 @@
             </div>
 
             <div class="flex items-center gap-2.5">
-                <div class="liquid-glass hidden rounded-full px-4 py-2 text-sm text-foreground sm:flex sm:items-center sm:gap-2">
-                    <i data-lucide="sparkles" class="h-4 w-4"></i>
-                    +{{ $user['xp'] }} XP
+                {{-- XP / Level / Badge — acuan User::updateLevel() & getBadgeAttribute() --}}
+                <div
+                    class="liquid-glass hidden h-10 items-center gap-2 rounded-full px-3.5 text-sm text-foreground sm:flex"
+                    :title="xpMeta.badge.nama + ' · Lv. ' + xpMeta.level + ' · ' + Number(xpMeta.xp).toLocaleString('id-ID') + ' XP' + (xpMeta.is_max_level ? '' : ' · menuju Lv. ' + xpMeta.next_level)"
+                >
+                    <i class="text-[13px] text-white/80" :class="xpMeta.badge.icon"></i>
+                    <span class="whitespace-nowrap">
+                        <span class="text-muted-foreground">Lv.<span x-text="xpMeta.level"></span></span>
+                        <span class="mx-1 text-white/20">·</span>
+                        <span x-text="Number(xpMeta.xp).toLocaleString('id-ID')"></span> XP
+                    </span>
+                    <span class="ml-0.5 h-1 w-10 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+                        <span
+                            class="block h-full rounded-full bg-white/55 transition-all duration-500"
+                            :style="'width: ' + xpMeta.xp_progress + '%'"
+                        ></span>
+                    </span>
                 </div>
 
                 <button type="button" id="profile" class="liquid-glass grid h-10 w-10 place-items-center overflow-hidden rounded-full text-sm font-medium text-foreground" aria-label="Profil">
@@ -395,7 +419,7 @@
 
                         <button
                             type="button"
-                            @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']) })"
+                            @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']), skill_id: {{ $partner['skill_id'] ? (int) $partner['skill_id'] : 'null' }} })"
                             class="liquid-glass mt-6 flex w-full items-center justify-between rounded-full px-5 py-3 text-sm text-foreground transition duration-300 hover:scale-[1.02]"
                         >
                             <span>+ Kirim request</span>
@@ -488,7 +512,7 @@
 
                             <button
                                 type="button"
-                                @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']) })"
+                                @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']), skill_id: {{ $partner['skill_id'] ? (int) $partner['skill_id'] : 'null' }} })"
                                 class="liquid-glass mt-6 flex w-full items-center justify-between rounded-full px-5 py-3 text-sm text-foreground transition duration-300 hover:scale-[1.02]"
                             >
                                 <span>+ Kirim request</span>
@@ -541,8 +565,13 @@
                 </div>
             </div>
 
-            <button type="button" @click="sendSwapRequest" class="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.01]">
-                Kirim request
+            <button
+                type="button"
+                @click="sendSwapRequest"
+                :disabled="sendingRequest || !selectedPartner.skill_id"
+                class="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+                <span x-text="sendingRequest ? 'Mengirim...' : 'Kirim request'"></span>
                 <i data-lucide="send" class="h-4 w-4"></i>
             </button>
         </div>
@@ -657,7 +686,9 @@
             swapOpen: false,
             requestsOpen: false,
             logoutOpen: false,
-            selectedPartner: { id: null, name: '', skill: '' },
+            sendingRequest: false,
+            selectedPartner: { id: null, name: '', skill: '', skill_id: null },
+            xpMeta: @js($xpMeta),
             swapForm: {
                 offerSkill: @js(($myTeachSkills ?? collect())->first() ?? ''),
                 message: 'Halo! Aku tertarik belajar bareng. Kita bisa saling tukar skill dan atur jadwal yang nyaman.'
@@ -703,14 +734,61 @@
                     id: partner.id ?? null,
                     name: partner.name ?? '',
                     skill: partner.skill ?? '',
+                    skill_id: partner.skill_id ?? null,
                 };
                 this.swapOpen = true;
                 this.$nextTick(() => lucide.createIcons());
             },
 
-            sendSwapRequest() {
-                this.swapOpen = false;
-                this.showToast(`Request ke ${this.selectedPartner.name} berhasil dikirim.`);
+            async sendSwapRequest() {
+                if (this.sendingRequest) return;
+
+                if (!this.selectedPartner.id || !this.selectedPartner.skill_id) {
+                    this.showToast('Partner atau skill belum tersedia.');
+                    return;
+                }
+
+                this.sendingRequest = true;
+
+                try {
+                    const response = await fetch(@js(route('swap.send')), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({
+                            receiver_id: this.selectedPartner.id,
+                            skill_id: this.selectedPartner.skill_id,
+                        }),
+                    });
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok || data.success === false) {
+                        const message = data.message
+                            || data.errors?.skill_id?.[0]
+                            || data.errors?.receiver_id?.[0]
+                            || 'Gagal mengirim request.';
+                        this.showToast(message);
+                        return;
+                    }
+
+                    if (data.user) {
+                        this.xpMeta = data.user;
+                    }
+
+                    this.swapOpen = false;
+                    const xpNote = data.xp_gained ? ` +${data.xp_gained} XP` : '';
+                    this.showToast(data.message || `Request ke ${this.selectedPartner.name} berhasil dikirim.${xpNote}`);
+                } catch (error) {
+                    this.showToast('Terjadi kesalahan jaringan. Coba lagi.');
+                } finally {
+                    this.sendingRequest = false;
+                    this.$nextTick(() => lucide.createIcons());
+                }
             },
 
             acceptRequest(request) {

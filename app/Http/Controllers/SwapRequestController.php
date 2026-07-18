@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SwapRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -40,7 +41,7 @@ class SwapRequestController extends Controller
         $user = Auth::user();
 
         if ($user->id == $request->receiver_id) {
-            return back()->with('error', 'Tidak bisa mengirim request ke diri sendiri.');
+            return $this->swapResponse($request, false, 'Tidak bisa mengirim request ke diri sendiri.');
         }
 
         $existing = SwapRequest::where('sender_id', $user->id)
@@ -50,7 +51,7 @@ class SwapRequestController extends Controller
             ->first();
 
         if ($existing) {
-            return back()->with('error', 'Kamu sudah mengirim request skill ini ke user tersebut.');
+            return $this->swapResponse($request, false, 'Kamu sudah mengirim request skill ini ke user tersebut.');
         }
 
         SwapRequest::create([
@@ -60,12 +61,22 @@ class SwapRequestController extends Controller
             'status'      => 'menunggu',
         ]);
 
-        $user->addXp(30);
+        $xpGained = User::XP_SEND_REQUEST;
+        $user->addXp($xpGained);
+        $user->refresh();
 
-        return back()->with('success', 'Request berhasil dikirim!');
+        return $this->swapResponse(
+            $request,
+            true,
+            'Request berhasil dikirim! +' . $xpGained . ' XP',
+            [
+                'xp_gained' => $xpGained,
+                'user' => $user->xpMeta(),
+            ]
+        );
     }
 
-    public function accept($id)
+    public function accept(Request $request, $id)
     {
         $user        = Auth::user();
         $swapRequest = SwapRequest::where('id', $id)
@@ -75,13 +86,23 @@ class SwapRequestController extends Controller
 
         $swapRequest->update(['status' => 'diterima']);
 
-        $user->addXp(50);
-        $swapRequest->sender->addXp(50);
+        $xpGained = User::XP_ACCEPT_REQUEST;
+        $user->addXp($xpGained);
+        $swapRequest->sender->addXp($xpGained);
+        $user->refresh();
 
-        return back()->with('success', 'Request diterima!');
+        return $this->swapResponse(
+            $request,
+            true,
+            'Request diterima! +' . $xpGained . ' XP',
+            [
+                'xp_gained' => $xpGained,
+                'user' => $user->xpMeta(),
+            ]
+        );
     }
 
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
         $user        = Auth::user();
         $swapRequest = SwapRequest::where('id', $id)
@@ -91,7 +112,24 @@ class SwapRequestController extends Controller
 
         $swapRequest->update(['status' => 'ditolak']);
 
-        return back()->with('success', 'Request ditolak!');
+        return $this->swapResponse($request, true, 'Request ditolak!');
+    }
+
+    /**
+     * JSON for AJAX/dashboard, flash redirect for classic form posts.
+     */
+    private function swapResponse(Request $request, bool $success, string $message, array $extra = [])
+    {
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json(array_merge([
+                'success' => $success,
+                'message' => $message,
+            ], $extra), $success ? 200 : 422);
+        }
+
+        $flashKey = $success ? 'success' : 'error';
+
+        return back()->with($flashKey, $message);
     }
 
     public function cancel($id)
