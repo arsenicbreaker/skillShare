@@ -177,65 +177,52 @@
         'city' => $authUser->city ?? '',
     ];
 
-    $calculateMatch = function (array $partner): int {
-        // Bobot: kecocokan skill 55%, skill yang ingin dipelajari 20%,
-        // kampus sama 15%, lokasi sama 10%.
-        $score = ($partner['skill_score'] * 0.55)
-               + ($partner['goal_score'] * 0.20)
-               + ($partner['same_campus'] ? 15 : 0)
-               + ($partner['same_city'] ? 10 : 0);
+    $formatPartner = function ($partnerUser) use ($authUser) {
+        $teachSkills = $partnerUser->userSkills
+            ->where('type', 'ajarkan')
+            ->map(fn ($us) => $us->skill)
+            ->filter();
 
-        return min(100, max(0, (int) round($score)));
+        $primarySkill = $teachSkills->first();
+        $skillNames = $teachSkills->pluck('name')->filter()->values()->all();
+        $categoryNames = $teachSkills
+            ->map(fn ($skill) => $skill?->category?->name)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $nameParts = preg_split('/\s+/', trim($partnerUser->name)) ?: [];
+        $initials = collect($nameParts)
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+
+        if ($initials === '') {
+            $initials = strtoupper(mb_substr($partnerUser->name, 0, 1));
+        }
+
+        return [
+            'id' => $partnerUser->id,
+            'name' => $partnerUser->name,
+            'initials' => $initials,
+            'photo' => $partnerUser->photo,
+            'university' => $partnerUser->university ?: 'Kampus belum diisi',
+            'city' => $partnerUser->city ?: '',
+            'bio' => $partnerUser->bio ?: 'Belum ada bio.',
+            'skill' => $primarySkill?->name ?? 'Belum ada skill',
+            'skills' => $skillNames,
+            'skills_text' => strtolower(implode(' ', $skillNames)),
+            'category' => $primarySkill?->category?->name ?? '',
+            'categories' => $categoryNames,
+            'categories_text' => implode(',', $categoryNames),
+            'match' => (int) ($partnerUser->match_percent ?? 0),
+            'same_campus' => filled($authUser->university)
+                && filled($partnerUser->university)
+                && strcasecmp($partnerUser->university, $authUser->university) === 0,
+        ];
     };
-
-    $bestPartners = [
-        [
-            'name' => 'Diego Martin', 'username' => 'diego', 'university' => 'Stanford University',
-            'city' => 'California', 'skill' => 'Svelte', 'category' => 'Frontend',
-            'bio' => 'Frontend engineer yang suka membangun UI cepat, ringan, dan accessible.',
-            'avatar' => 'DM', 'skill_score' => 98, 'goal_score' => 100,
-            'same_campus' => false, 'same_city' => false,
-        ],
-        [
-            'name' => 'Lina Park', 'username' => 'lina', 'university' => 'Seoul National University',
-            'city' => 'Seoul', 'skill' => 'Piano', 'category' => 'Language',
-            'bio' => 'Pianis klasik yang suka bertukar skill musik dengan desain digital.',
-            'avatar' => 'LP', 'skill_score' => 95, 'goal_score' => 95,
-            'same_campus' => false, 'same_city' => false,
-        ],
-        [
-            'name' => 'Kenji Rao', 'username' => 'kenji', 'university' => 'IIT Bombay',
-            'city' => 'Mumbai', 'skill' => 'Hardware', 'category' => 'Backend',
-            'bio' => 'Hardware enthusiast, embedded systems learner, dan mentor komunitas kampus.',
-            'avatar' => 'KR', 'skill_score' => 91, 'goal_score' => 90,
-            'same_campus' => false, 'same_city' => false,
-        ],
-    ];
-
-    $campusPartners = [
-        [
-            'name' => 'Sam Pratama', 'username' => 'sam', 'university' => 'Universitas Airlangga',
-            'city' => 'Surabaya', 'skill' => 'Guitar', 'category' => 'Language',
-            'bio' => 'Gitaris kampus yang terbuka untuk sesi belajar santai setelah kelas.',
-            'avatar' => 'SP', 'skill_score' => 73, 'goal_score' => 71,
-            'same_campus' => true, 'same_city' => true,
-        ],
-        [
-            'name' => 'Aria Putri', 'username' => 'aria', 'university' => 'Universitas Airlangga',
-            'city' => 'Surabaya', 'skill' => 'UI/UX', 'category' => 'Design',
-            'bio' => 'UI/UX designer yang fokus pada riset pengguna dan design system.',
-            'avatar' => 'AP', 'skill_score' => 68, 'goal_score' => 66,
-            'same_campus' => true, 'same_city' => true,
-        ],
-        [
-            'name' => 'Leo Wijaya', 'username' => 'leo', 'university' => 'Universitas Airlangga',
-            'city' => 'Surabaya', 'skill' => 'Math', 'category' => 'Data',
-            'bio' => 'Tutor matematika yang sabar dan suka menjelaskan konsep dari dasar.',
-            'avatar' => 'LW', 'skill_score' => 60, 'goal_score' => 60,
-            'same_campus' => true, 'same_city' => true,
-        ],
-    ];
-
 @endphp
 
 <div class="stars-bg" id="stars-dashboard" aria-hidden="true"></div>
@@ -292,18 +279,16 @@
                     <input
                         x-model.debounce.200ms="query"
                         type="search"
-                        placeholder="Cari nama, skill, atau username..."
+                        placeholder="Cari nama, skill, atau kampus..."
                         class="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                     >
                 </label>
 
                 <select x-model="category" class="surface-soft h-12 rounded-2xl px-4 text-sm text-foreground outline-none">
                     <option value="Semua" class="bg-[#061f2b]">Semua kategori</option>
-                    <option value="Frontend" class="bg-[#061f2b]">Frontend</option>
-                    <option value="Backend" class="bg-[#061f2b]">Backend</option>
-                    <option value="Design" class="bg-[#061f2b]">Design</option>
-                    <option value="Data" class="bg-[#061f2b]">Data</option>
-                    <option value="Language" class="bg-[#061f2b]">Language</option>
+                    @foreach ($categories as $cat)
+                        <option value="{{ $cat->name }}" class="bg-[#061f2b]">{{ $cat->name }}</option>
+                    @endforeach
                 </select>
 
                 <button
@@ -320,30 +305,43 @@
 
         <section class="pb-12 md:pb-16">
             <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
-                @foreach ($bestPartners as $partner)
-                    @php $match = $calculateMatch($partner); @endphp
+                @forelse ($users as $partnerUser)
+                    @php $partner = $formatPartner($partnerUser); @endphp
                     <article
                         data-name="{{ strtolower($partner['name']) }}"
-                        data-username="{{ strtolower($partner['username']) }}"
-                        data-skill="{{ strtolower($partner['skill']) }}"
-                        data-category="{{ $partner['category'] }}"
+                        data-skill="{{ $partner['skills_text'] }}"
+                        data-category="{{ $partner['categories_text'] }}"
+                        data-university-name="{{ strtolower($partner['university']) }}"
                         data-university="{{ $partner['same_campus'] ? 'same' : 'different' }}"
-                        data-match="{{ $match }}"
+                        data-match="{{ $partner['match'] }}"
                         x-show="partnerVisible($el.dataset)"
                         x-transition.opacity.duration.200ms
                         class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
                         <div class="flex items-center justify-between gap-4">
-                            <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $match }}% match</span>
+                            <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $partner['match'] }}% match</span>
+                            @if ($partner['city'])
+                                <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
+                            @endif
                         </div>
 
                         <div class="mt-6 flex items-center gap-4">
-                            <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 font-display text-xl">
-                                {{ $partner['avatar'] }}
-                            </div>
+                            @if ($partner['photo'])
+                                <img
+                                    src="{{ asset('storage/' . ltrim($partner['photo'], '/')) }}"
+                                    alt="{{ $partner['name'] }}"
+                                    class="h-14 w-14 shrink-0 rounded-full border border-white/10 object-cover"
+                                >
+                            @else
+                                <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 font-display text-xl">
+                                    {{ $partner['initials'] }}
+                                </div>
+                            @endif
                             <div class="min-w-0">
                                 <h3 class="truncate text-lg font-medium">{{ $partner['name'] }}</h3>
-                                <p class="text-sm text-muted-foreground">@{{ $partner['username'] }}</p>
+                                @if ($partner['category'])
+                                    <p class="text-sm text-muted-foreground">{{ $partner['category'] }}</p>
+                                @endif
                             </div>
                         </div>
 
@@ -354,86 +352,123 @@
 
                         <div class="mt-5">
                             <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">Dia ajarkan</p>
-                            <span class="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-black">{{ $partner['skill'] }}</span>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @forelse ($partner['skills'] as $skillName)
+                                    <span class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-black">{{ $skillName }}</span>
+                                @empty
+                                    <span class="inline-flex rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">Belum ada skill</span>
+                                @endforelse
+                            </div>
                         </div>
 
                         <p class="mt-5 min-h-16 text-sm leading-6 text-muted-foreground">{{ $partner['bio'] }}</p>
 
                         <button
                             type="button"
-                            @click="openSwap({ name: @js($partner['name']), username: @js($partner['username']), skill: @js($partner['skill']) })"
+                            @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']) })"
                             class="liquid-glass mt-6 flex w-full items-center justify-between rounded-full px-5 py-3 text-sm text-foreground transition duration-300 hover:scale-[1.02]"
                         >
                             <span>+ Kirim request</span>
                             <i data-lucide="arrow-right" class="h-4 w-4"></i>
                         </button>
                     </article>
-                @endforeach
+                @empty
+                    <div class="surface col-span-full rounded-[28px] px-6 py-12 text-center">
+                        <p class="font-display text-3xl">Belum ada partner</p>
+                        <p class="mt-3 text-sm text-muted-foreground">User lain yang sudah daftar dan selesai onboarding akan muncul di sini.</p>
+                    </div>
+                @endforelse
             </div>
+
+            @if ($users->hasPages())
+                <div class="mt-8 flex justify-center">
+                    {{ $users->links() }}
+                </div>
+            @endif
         </section>
 
-        <div class="dotted-divider"></div>
+        @if ($campusUsers->isNotEmpty())
+            <div class="dotted-divider"></div>
 
-        <section class="py-12 md:py-16">
-            <div class="mb-7">
-                <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Di dekatmu</p>
-                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Mahasiswa dari kampus terdekat</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Mahasiswa terdekat di sekitarmu.</p>
-            </div>
+            <section class="py-12 md:py-16">
+                <div class="mb-7">
+                    <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Di dekatmu</p>
+                    <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Mahasiswa dari kampus terdekat</h2>
+                    <p class="mt-2 text-sm text-muted-foreground">Mahasiswa terdekat di sekitarmu.</p>
+                </div>
 
-            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
-                @foreach ($campusPartners as $partner)
-                    @php $match = $calculateMatch($partner); @endphp
-                    <article
-                        data-name="{{ strtolower($partner['name']) }}"
-                        data-username="{{ strtolower($partner['username']) }}"
-                        data-skill="{{ strtolower($partner['skill']) }}"
-                        data-category="{{ $partner['category'] }}"
-                        data-university="same"
-                        data-match="{{ $match }}"
-                        x-show="partnerVisible($el.dataset)"
-                        x-transition.opacity.duration.200ms
-                        class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
-                    >
-                        <div class="flex items-center justify-between gap-4">
-                            <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $match }}% match</span>
-                            <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
-                        </div>
-
-                        <div class="mt-6 flex items-center gap-4">
-                            <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 font-display text-xl">
-                                {{ $partner['avatar'] }}
-                            </div>
-                            <div class="min-w-0">
-                                <h3 class="truncate text-lg font-medium">{{ $partner['name'] }}</h3>
-                                <p class="text-sm text-muted-foreground">@{{ $partner['username'] }}</p>
-                            </div>
-                        </div>
-
-                        <div class="mt-5 flex items-start gap-2 text-sm text-muted-foreground">
-                            <i data-lucide="graduation-cap" class="mt-0.5 h-4 w-4 shrink-0"></i>
-                            <span>{{ $partner['university'] }}</span>
-                        </div>
-
-                        <div class="mt-5">
-                            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">Dia ajarkan</p>
-                            <span class="mt-2 inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-black">{{ $partner['skill'] }}</span>
-                        </div>
-
-                        <p class="mt-5 min-h-16 text-sm leading-6 text-muted-foreground">{{ $partner['bio'] }}</p>
-
-                        <button
-                            type="button"
-                            @click="openSwap({ name: @js($partner['name']), username: @js($partner['username']), skill: @js($partner['skill']) })"
-                            class="liquid-glass mt-6 flex w-full items-center justify-between rounded-full px-5 py-3 text-sm text-foreground transition duration-300 hover:scale-[1.02]"
+                <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
+                    @foreach ($campusUsers as $partnerUser)
+                        @php $partner = $formatPartner($partnerUser); @endphp
+                        <article
+                            data-name="{{ strtolower($partner['name']) }}"
+                            data-skill="{{ $partner['skills_text'] }}"
+                            data-category="{{ $partner['categories_text'] }}"
+                            data-university-name="{{ strtolower($partner['university']) }}"
+                            data-university="same"
+                            data-match="{{ $partner['match'] }}"
+                            x-show="partnerVisible($el.dataset)"
+                            x-transition.opacity.duration.200ms
+                            class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                         >
-                            <span>+ Kirim request</span>
-                            <i data-lucide="arrow-right" class="h-4 w-4"></i>
-                        </button>
-                    </article>
-                @endforeach
-            </div>
-        </section>
+                            <div class="flex items-center justify-between gap-4">
+                                <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $partner['match'] }}% match</span>
+                                @if ($partner['city'])
+                                    <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
+                                @endif
+                            </div>
+
+                            <div class="mt-6 flex items-center gap-4">
+                                @if ($partner['photo'])
+                                    <img
+                                        src="{{ asset('storage/' . ltrim($partner['photo'], '/')) }}"
+                                        alt="{{ $partner['name'] }}"
+                                        class="h-14 w-14 shrink-0 rounded-full border border-white/10 object-cover"
+                                    >
+                                @else
+                                    <div class="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 font-display text-xl">
+                                        {{ $partner['initials'] }}
+                                    </div>
+                                @endif
+                                <div class="min-w-0">
+                                    <h3 class="truncate text-lg font-medium">{{ $partner['name'] }}</h3>
+                                    @if ($partner['category'])
+                                        <p class="text-sm text-muted-foreground">{{ $partner['category'] }}</p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="mt-5 flex items-start gap-2 text-sm text-muted-foreground">
+                                <i data-lucide="graduation-cap" class="mt-0.5 h-4 w-4 shrink-0"></i>
+                                <span>{{ $partner['university'] }}</span>
+                            </div>
+
+                            <div class="mt-5">
+                                <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">Dia ajarkan</p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    @forelse ($partner['skills'] as $skillName)
+                                        <span class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-black">{{ $skillName }}</span>
+                                    @empty
+                                        <span class="inline-flex rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">Belum ada skill</span>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            <p class="mt-5 min-h-16 text-sm leading-6 text-muted-foreground">{{ $partner['bio'] }}</p>
+
+                            <button
+                                type="button"
+                                @click="openSwap({ id: {{ $partner['id'] }}, name: @js($partner['name']), skill: @js($partner['skill']) })"
+                                class="liquid-glass mt-6 flex w-full items-center justify-between rounded-full px-5 py-3 text-sm text-foreground transition duration-300 hover:scale-[1.02]"
+                            >
+                                <span>+ Kirim request</span>
+                                <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                            </button>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
     </main>
 
     <footer class="relative z-0 border-t border-white/10 px-5 py-8 text-center text-sm text-muted-foreground">
@@ -457,10 +492,11 @@
                 <div>
                     <label class="mb-2 block text-sm text-muted-foreground">Skill yang kamu tawarkan</label>
                     <select x-model="swapForm.offerSkill" class="surface-soft h-12 w-full rounded-2xl px-4 text-sm text-foreground outline-none">
-                        <option class="bg-[#061f2b]">Laravel</option>
-                        <option class="bg-[#061f2b]">UI/UX</option>
-                        <option class="bg-[#061f2b]">Public Speaking</option>
-                        <option class="bg-[#061f2b]">Bahasa Indonesia</option>
+                        @forelse (($myTeachSkills ?? collect()) as $skillName)
+                            <option value="{{ $skillName }}" class="bg-[#061f2b]">{{ $skillName }}</option>
+                        @empty
+                            <option value="" class="bg-[#061f2b]">Belum ada skill yang kamu ajarkan</option>
+                        @endforelse
                     </select>
                 </div>
 
@@ -591,9 +627,9 @@
             swapOpen: false,
             requestsOpen: false,
             logoutOpen: false,
-            selectedPartner: { name: '', username: '', skill: '' },
+            selectedPartner: { id: null, name: '', skill: '' },
             swapForm: {
-                offerSkill: 'Laravel',
+                offerSkill: @js(($myTeachSkills ?? collect())->first() ?? ''),
                 message: 'Halo! Aku tertarik belajar bareng. Kita bisa saling tukar skill dan atur jadwal yang nyaman.'
             },
             incomingRequests: [
@@ -603,9 +639,13 @@
             toast: { show: false, message: '' },
 
             partnerVisible(dataset) {
-                const haystack = `${dataset.name} ${dataset.username} ${dataset.skill}`.toLowerCase();
+                const haystack = `${dataset.name || ''} ${dataset.skill || ''} ${dataset.category || ''} ${dataset.universityName || ''}`.toLowerCase();
                 const matchesSearch = haystack.includes(this.query.toLowerCase().trim());
-                const matchesCategory = this.category === 'Semua' || dataset.category === this.category;
+                const categoryList = (dataset.category || '')
+                    .split(',')
+                    .map((item) => item.trim())
+                    .filter(Boolean);
+                const matchesCategory = this.category === 'Semua' || categoryList.includes(this.category);
 
                 return matchesSearch && matchesCategory;
             },
@@ -629,7 +669,11 @@
             },
 
             openSwap(partner) {
-                this.selectedPartner = { ...partner };
+                this.selectedPartner = {
+                    id: partner.id ?? null,
+                    name: partner.name ?? '',
+                    skill: partner.skill ?? '',
+                };
                 this.swapOpen = true;
                 this.$nextTick(() => lucide.createIcons());
             },

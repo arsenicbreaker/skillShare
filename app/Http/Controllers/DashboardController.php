@@ -78,6 +78,16 @@ class DashboardController extends Controller
             ->sortByDesc('match_percent')
             ->values();
 
+        // Partner dari kampus yang sama (maks. 6)
+        $campusUsers = $allUsers
+            ->filter(function ($otherUser) use ($user) {
+                return filled($user->university)
+                    && filled($otherUser->university)
+                    && strcasecmp($otherUser->university, $user->university) === 0;
+            })
+            ->take(6)
+            ->values();
+
         // Pagination manual setelah proses sorting
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
         $pagedUsers  = $allUsers->forPage($currentPage, self::PER_PAGE);
@@ -95,6 +105,14 @@ class DashboardController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('dashboard', compact('users', 'categories'));
+        $myTeachSkills = $user->userSkills()
+            ->where('type', 'ajarkan')
+            ->with('skill')
+            ->get()
+            ->pluck('skill.name')
+            ->filter()
+            ->values();
+
+        return view('dashboard', compact('users', 'categories', 'campusUsers', 'myTeachSkills'));
     }
 }
