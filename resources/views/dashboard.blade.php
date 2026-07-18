@@ -47,7 +47,7 @@
             --font-display: 'Instrument Serif', serif;
             --font-body: 'Inter', sans-serif;
 
-            --background: 201 100% 13%;
+            --background: 201 100% 8%;
             --foreground: 0 0% 100%;
             --muted-foreground: 240 4% 66%;
             --primary: 0 0% 100%;
@@ -66,6 +66,7 @@
         body {
             margin: 0;
             min-height: 100vh;
+            overflow-x: hidden;
             background: hsl(var(--background));
             color: hsl(var(--foreground));
             font-family: var(--font-body);
@@ -135,14 +136,30 @@
         .animate-fade-rise-delay { animation: fade-rise 0.8s ease-out 0.2s both; }
         .animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
 
-        .video-bg {
+        .stars-bg {
             position: fixed;
             inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: .17;
-            z-index: -2;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--d) ease-in-out infinite var(--delay);
+        }
+
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: var(--lo);
+                transform: scale(1);
+            }
+            50% {
+                opacity: var(--hi);
+                transform: scale(1.5);
+            }
         }
 
         .scrollbar-hidden::-webkit-scrollbar { display: none; }
@@ -221,20 +238,17 @@
 
 @endphp
 
-<!-- Simpan video di public/videos/skillshare-bg.mp4 -->
-<video class="video-bg" autoplay muted loop playsinline aria-hidden="true">
-    <source src="{{ asset('videos/skillshare-bg.mp4') }}" type="video/mp4">
-</video>
+<div class="stars-bg" id="stars-dashboard" aria-hidden="true"></div>
 
 <div
     x-data="skillShareApp()"
     x-init="$nextTick(() => lucide.createIcons())"
-    class="min-h-screen"
+    class="relative z-10 min-h-screen"
 >
     <header class="relative z-10">
         <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8 md:py-6">
             <a href="#" class="font-display text-3xl tracking-tight text-foreground">
-                SkillShare<sup class="text-xs">®</sup>
+                SkillShare<sup class="text-xs"></sup>
             </a>
 
             <div class="hidden items-center gap-8 md:flex">
@@ -256,7 +270,7 @@
                     {{ $user['initial'] }}
                 </button>
 
-                <button type="button" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
+                <button type="button" @click="logoutOpen = true; $nextTick(() => lucide.createIcons())" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
                     <i data-lucide="log-out" class="h-4 w-4"></i>
                 </button>
             </div>
@@ -264,7 +278,7 @@
     </header>
 
     <main id="discover" class="relative z-0 mx-auto max-w-7xl px-5 pb-24 pt-8 md:px-8 md:pt-14">
-        <section class="mb-10 md:mb-14">
+        <section class="mb-6 md:mb-8">
             <h1 class="animate-fade-rise font-display text-5xl leading-[0.95] tracking-tight md:text-7xl">
                 Selamat datang, {{ $user['name'] }}! <span class="font-body text-4xl md:text-5xl">👋</span>
             </h1>
@@ -302,18 +316,9 @@
                     <span x-text="sortDescending ? 'Urutkan' : 'Urutkan'"></span>
                 </button>
             </div>
-
         </section>
 
-        <div class="dotted-divider"></div>
-
-        <section class="py-12 md:py-16">
-            <div class="mb-7">
-                <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Kurasi personal</p>
-                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Match terbaikmu</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Cocok berdasarkan skill, kampus, dan lokasi.</p>
-            </div>
-
+        <section class="pb-12 md:pb-16">
             <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
                 @foreach ($bestPartners as $partner)
                     @php $match = $calculateMatch($partner); @endphp
@@ -330,9 +335,6 @@
                     >
                         <div class="flex items-center justify-between gap-4">
                             <span class="rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground">{{ $match }}% match</span>
-                            <button type="button" class="text-muted-foreground transition hover:text-foreground" aria-label="Simpan partner">
-                                <i data-lucide="bookmark" class="h-4 w-4"></i>
-                            </button>
                         </div>
 
                         <div class="mt-6 flex items-center gap-4">
@@ -375,8 +377,8 @@
         <section class="py-12 md:py-16">
             <div class="mb-7">
                 <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Di dekatmu</p>
-                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Partner dari kampus yang sama</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Sesama mahasiswa di kotamu.</p>
+                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Mahasiswa dari kampus terdekat</h2>
+                <p class="mt-2 text-sm text-muted-foreground">Mahasiswa terdekat di sekitarmu.</p>
             </div>
 
             <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
@@ -519,6 +521,58 @@
         </aside>
     </div>
 
+    <!-- Modal konfirmasi logout -->
+    <div
+        x-cloak
+        x-show="logoutOpen"
+        x-transition.opacity
+        class="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4"
+        @keydown.escape.window="logoutOpen = false"
+    >
+        <div
+            @click.outside="logoutOpen = false"
+            class="surface w-full max-w-md rounded-[30px] p-6 md:p-7"
+        >
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-4">
+                    <div class="surface-soft grid h-12 w-12 shrink-0 place-items-center rounded-full">
+                        <i data-lucide="log-out" class="h-5 w-5 text-muted-foreground"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-muted-foreground">Keluar</p>
+                        <h3 class="mt-2 font-display text-3xl md:text-4xl">Apakah kamu ingin keluar?</h3>
+                        <p class="mt-3 text-sm leading-6 text-muted-foreground">
+                            Sesi kamu akan diakhiri dan kamu akan diarahkan ke beranda.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="logoutOpen = false" class="surface-soft grid h-10 w-10 shrink-0 place-items-center rounded-full">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+
+            <div class="mt-7 grid grid-cols-2 gap-3">
+                <button
+                    type="button"
+                    @click="logoutOpen = false"
+                    class="surface-soft rounded-full px-5 py-3 text-sm text-muted-foreground transition hover:text-foreground"
+                >
+                    Batal
+                </button>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.01]"
+                    >
+                        Ya, keluar
+                        <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div x-cloak x-show="toast.show" x-transition class="fixed bottom-5 right-5 z-[60] max-w-sm rounded-2xl border border-white/10 bg-black/80 px-5 py-4 text-sm text-white shadow-2xl backdrop-blur-xl">
         <div class="flex items-start gap-3">
@@ -536,6 +590,7 @@
             sortDescending: true,
             swapOpen: false,
             requestsOpen: false,
+            logoutOpen: false,
             selectedPartner: { name: '', username: '', skill: '' },
             swapForm: {
                 offerSkill: 'Laravel',
@@ -603,6 +658,28 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+
+    function makeStars(containerId, count) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        for (let i = 0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'star';
+            const size = Math.random() * 2.4 + 0.3;
+            el.style.setProperty('--d', (Math.random() * 4 + 2).toFixed(1) + 's');
+            el.style.setProperty('--delay', (Math.random() * 6).toFixed(1) + 's');
+            el.style.setProperty('--lo', (Math.random() * 0.15 + 0.05).toFixed(2));
+            el.style.setProperty('--hi', (Math.random() * 0.6 + 0.4).toFixed(2));
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            el.style.left = Math.random() * 100 + '%';
+            el.style.top = Math.random() * 100 + '%';
+            container.appendChild(el);
+        }
+    }
+
+    makeStars('stars-dashboard', 280);
 </script>
 </body>
 </html>
