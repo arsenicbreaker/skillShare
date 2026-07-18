@@ -292,8 +292,14 @@
                     <option value="Language" class="bg-[#061f2b]">Language</option>
                 </select>
 
-                <button type="button" @click="universityOnly = !universityOnly" :class="universityOnly ? 'bg-white text-black' : 'surface-soft text-foreground'" class="h-12 rounded-2xl px-5 text-xs font-medium tracking-[0.18em] transition">
-                    UNIV
+                <button
+                    type="button"
+                    @click="toggleSort()"
+                    class="surface-soft h-12 rounded-2xl px-5 text-sm text-foreground inline-flex items-center gap-2 transition hover:border-white/20"
+                    :title="sortDescending ? 'Match tertinggi dulu' : 'Match terendah dulu'"
+                >
+                    <i data-lucide="arrow-up-down" class="h-4 w-4"></i>
+                    <span x-text="sortDescending ? 'Urutkan' : 'Urutkan'"></span>
                 </button>
             </div>
 
@@ -313,19 +319,13 @@
         <div class="dotted-divider"></div>
 
         <section class="py-12 md:py-16">
-            <div class="mb-7 flex items-end justify-between gap-5">
-                <div>
-                    <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Kurasi personal</p>
-                    <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Match terbaikmu</h2>
-                    <p class="mt-2 text-sm text-muted-foreground">Cocok berdasarkan skill, kampus, dan lokasi.</p>
-                </div>
-                <button type="button" @click="sortDescending = !sortDescending" class="surface-soft hidden rounded-full px-4 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:inline-flex sm:items-center sm:gap-2">
-                    <i data-lucide="arrow-up-down" class="h-4 w-4"></i>
-                    Urutkan
-                </button>
+            <div class="mb-7">
+                <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Kurasi personal</p>
+                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Match terbaikmu</h2>
+                <p class="mt-2 text-sm text-muted-foreground">Cocok berdasarkan skill, kampus, dan lokasi.</p>
             </div>
 
-            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
                 @foreach ($bestPartners as $partner)
                     @php $match = $calculateMatch($partner); @endphp
                     <article
@@ -334,6 +334,7 @@
                         data-skill="{{ strtolower($partner['skill']) }}"
                         data-category="{{ $partner['category'] }}"
                         data-university="{{ $partner['same_campus'] ? 'same' : 'different' }}"
+                        data-match="{{ $match }}"
                         x-show="partnerVisible($el.dataset)"
                         x-transition.opacity.duration.200ms
                         class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
@@ -389,7 +390,7 @@
                 <p class="mt-2 text-sm text-muted-foreground">Sesama mahasiswa di kotamu.</p>
             </div>
 
-            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3" data-partner-grid>
                 @foreach ($campusPartners as $partner)
                     @php $match = $calculateMatch($partner); @endphp
                     <article
@@ -398,6 +399,7 @@
                         data-skill="{{ strtolower($partner['skill']) }}"
                         data-category="{{ $partner['category'] }}"
                         data-university="same"
+                        data-match="{{ $match }}"
                         x-show="partnerVisible($el.dataset)"
                         x-transition.opacity.duration.200ms
                         class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
@@ -542,7 +544,6 @@
         return {
             query: '',
             category: 'Semua',
-            universityOnly: false,
             sortDescending: true,
             swapOpen: false,
             requestsOpen: false,
@@ -562,9 +563,26 @@
                 const haystack = `${dataset.name} ${dataset.username} ${dataset.skill}`.toLowerCase();
                 const matchesSearch = haystack.includes(this.query.toLowerCase().trim());
                 const matchesCategory = this.category === 'Semua' || dataset.category === this.category;
-                const matchesUniversity = !this.universityOnly || dataset.university === 'same';
 
-                return matchesSearch && matchesCategory && matchesUniversity;
+                return matchesSearch && matchesCategory;
+            },
+
+            toggleSort() {
+                this.sortDescending = !this.sortDescending;
+                this.applySort();
+                this.$nextTick(() => lucide.createIcons());
+            },
+
+            applySort() {
+                document.querySelectorAll('[data-partner-grid]').forEach((grid) => {
+                    const cards = Array.from(grid.children);
+                    cards.sort((a, b) => {
+                        const matchA = parseInt(a.dataset.match || '0', 10);
+                        const matchB = parseInt(b.dataset.match || '0', 10);
+                        return this.sortDescending ? matchB - matchA : matchA - matchB;
+                    });
+                    cards.forEach((card) => grid.appendChild(card));
+                });
             },
 
             openSwap(partner) {
