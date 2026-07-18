@@ -151,12 +151,13 @@
 </head>
 <body>
 @php
+    $authUser = auth()->user();
     $user = [
-        'name' => 'Budi',
-        'initial' => 'B',
-        'xp' => 80,
-        'university' => 'Universitas Airlangga',
-        'city' => 'Surabaya',
+        'name' => $authUser->name,
+        'initial' => strtoupper(mb_substr($authUser->name, 0, 1)),
+        'xp' => $authUser->xp ?? 0,
+        'university' => $authUser->university ?? '',
+        'city' => $authUser->city ?? '',
     ];
 
     $calculateMatch = function (array $partner): int {
@@ -218,16 +219,6 @@
         ],
     ];
 
-    $skills = [
-        ['icon' => 'atom', 'name' => 'React', 'count' => 12],
-        ['icon' => 'palette', 'name' => 'Figma', 'count' => 8],
-        ['icon' => 'code-2', 'name' => 'Python', 'count' => 15],
-        ['icon' => 'pen-tool', 'name' => 'UI/UX', 'count' => 6],
-        ['icon' => 'terminal-square', 'name' => 'Laravel', 'count' => 9],
-        ['icon' => 'globe-2', 'name' => 'Vue.js', 'count' => 5],
-        ['icon' => 'bar-chart-3', 'name' => 'Data', 'count' => 11],
-        ['icon' => 'cloud', 'name' => 'AWS', 'count' => 4],
-    ];
 @endphp
 
 <!-- Simpan video di public/videos/skillshare-bg.mp4 -->
@@ -252,7 +243,6 @@
                     Requests
                     <span class="absolute -right-4 -top-3 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-medium text-black">2</span>
                 </button>
-                <a href="#skills" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Explore</a>
                 <a href="#profile" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Profil</a>
             </div>
 
@@ -386,26 +376,6 @@
                             <i data-lucide="arrow-right" class="h-4 w-4"></i>
                         </button>
                     </article>
-                @endforeach
-            </div>
-        </section>
-
-        <div class="dotted-divider"></div>
-
-        <section id="skills" class="py-12 md:py-16">
-            <div class="mb-7">
-                <p class="text-xs uppercase tracking-[0.22em] text-muted-foreground">Explore</p>
-                <h2 class="mt-2 font-display text-4xl tracking-tight md:text-5xl">Mau belajar skill lain?</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Coba explore berdasarkan skill yang kamu mau pelajari.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-                @foreach ($skills as $skill)
-                    <button type="button" @click="query = @js(strtolower($skill['name'])); category = 'Semua'; window.scrollTo({ top: 0, behavior: 'smooth' })" class="surface-soft group rounded-[24px] p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-white/20">
-                        <i data-lucide="{{ $skill['icon'] }}" class="h-6 w-6 text-muted-foreground transition group-hover:text-foreground"></i>
-                        <h3 class="mt-7 text-base font-medium">{{ $skill['name'] }}</h3>
-                        <p class="mt-1 text-sm text-muted-foreground">{{ $skill['count'] }} orang</p>
-                    </button>
                 @endforeach
             </div>
         </section>
