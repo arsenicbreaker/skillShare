@@ -169,15 +169,48 @@
 <body>
 @php
     $authUser = auth()->user();
+
+    $makeInitials = function (?string $name): string {
+        $nameParts = preg_split('/\s+/', trim((string) $name)) ?: [];
+        $initials = collect($nameParts)
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+
+        return $initials !== ''
+            ? $initials
+            : strtoupper(mb_substr((string) $name, 0, 1));
+    };
+
+    $photoUrl = function (?string $photo): ?string {
+        if (! filled($photo)) {
+            return null;
+        }
+
+        // Path di DB: photos/xxx.png → public via storage link
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($photo)) {
+            return asset('storage/' . ltrim($photo, '/'));
+        }
+
+        // Fallback kalau path sudah full URL / relative public
+        if (str_starts_with($photo, 'http://') || str_starts_with($photo, 'https://')) {
+            return $photo;
+        }
+
+        return asset('storage/' . ltrim($photo, '/'));
+    };
+
     $user = [
         'name' => $authUser->name,
-        'initial' => strtoupper(mb_substr($authUser->name, 0, 1)),
+        'initials' => $makeInitials($authUser->name),
+        'photo_url' => $photoUrl($authUser->photo),
         'xp' => $authUser->xp ?? 0,
         'university' => $authUser->university ?? '',
         'city' => $authUser->city ?? '',
     ];
 
-    $formatPartner = function ($partnerUser) use ($authUser) {
+    $formatPartner = function ($partnerUser) use ($authUser, $makeInitials, $photoUrl) {
         $teachSkills = $partnerUser->userSkills
             ->where('type', 'ajarkan')
             ->map(fn ($us) => $us->skill)
@@ -192,22 +225,11 @@
             ->values()
             ->all();
 
-        $nameParts = preg_split('/\s+/', trim($partnerUser->name)) ?: [];
-        $initials = collect($nameParts)
-            ->filter()
-            ->take(2)
-            ->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))
-            ->implode('');
-
-        if ($initials === '') {
-            $initials = strtoupper(mb_substr($partnerUser->name, 0, 1));
-        }
-
         return [
             'id' => $partnerUser->id,
             'name' => $partnerUser->name,
-            'initials' => $initials,
-            'photo' => $partnerUser->photo,
+            'initials' => $makeInitials($partnerUser->name),
+            'photo_url' => $photoUrl($partnerUser->photo),
             'university' => $partnerUser->university ?: 'Kampus belum diisi',
             'city' => $partnerUser->city ?: '',
             'bio' => $partnerUser->bio ?: 'Belum ada bio.',
@@ -253,8 +275,16 @@
                     +{{ $user['xp'] }} XP
                 </div>
 
-                <button type="button" id="profile" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-sm font-medium text-foreground">
-                    {{ $user['initial'] }}
+                <button type="button" id="profile" class="liquid-glass grid h-10 w-10 place-items-center overflow-hidden rounded-full text-sm font-medium text-foreground" aria-label="Profil">
+                    @if ($user['photo_url'])
+                        <img
+                            src="{{ $user['photo_url'] }}"
+                            alt="{{ $user['name'] }}"
+                            class="h-full w-full object-cover"
+                        >
+                    @else
+                        {{ $user['initials'] }}
+                    @endif
                 </button>
 
                 <button type="button" @click="logoutOpen = true; $nextTick(() => lucide.createIcons())" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
@@ -326,9 +356,9 @@
                         </div>
 
                         <div class="mt-6 flex items-center gap-4">
-                            @if ($partner['photo'])
+                            @if ($partner['photo_url'])
                                 <img
-                                    src="{{ asset('storage/' . ltrim($partner['photo'], '/')) }}"
+                                    src="{{ $partner['photo_url'] }}"
                                     alt="{{ $partner['name'] }}"
                                     class="h-14 w-14 shrink-0 rounded-full border border-white/10 object-cover"
                                 >
@@ -419,9 +449,9 @@
                             </div>
 
                             <div class="mt-6 flex items-center gap-4">
-                                @if ($partner['photo'])
+                                @if ($partner['photo_url'])
                                     <img
-                                        src="{{ asset('storage/' . ltrim($partner['photo'], '/')) }}"
+                                        src="{{ $partner['photo_url'] }}"
                                         alt="{{ $partner['name'] }}"
                                         class="h-14 w-14 shrink-0 rounded-full border border-white/10 object-cover"
                                     >
