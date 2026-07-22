@@ -276,12 +276,22 @@
             </a>
 
             <div class="hidden items-center gap-8 md:flex">
-                <a href="#discover" class="text-sm text-foreground">Discover</a>
-                <button type="button" @click="requestsOpen = true" class="relative text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    Requests
-                    <span class="absolute -right-4 -top-3 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-medium text-black">2</span>
-                </button>
-                <a href="#profile" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Profil</a>
+                <a href="{{ route('dashboard') }}"
+                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('dashboard') ? 'text-foreground' : 'text-muted-foreground' }}">
+                    Discover
+                </a>
+                <a href="{{ route('swap.index') }}"
+                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('swap*') ? 'text-foreground' : 'text-muted-foreground' }}">
+                    Permintaan
+                </a>
+                <a href="{{ route('leaderboard') }}"
+                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('leaderboard') ? 'text-foreground' : 'text-muted-foreground' }}">
+                    Papan Peringkat
+                </a>
+                <a href="{{ route('profile') }}"
+                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('profile*') ? 'text-foreground' : 'text-muted-foreground' }}">
+                    Profil
+                </a>
             </div>
 
             <div class="flex items-center gap-2.5">

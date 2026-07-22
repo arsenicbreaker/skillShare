@@ -34,6 +34,10 @@ Route::middleware(['auth'])->group(function () {
         // Dashboard/Discover
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        Route::get('/leaderboard', [App\Http\Controllers\LeaderboardController::class, 'index'])
+            ->middleware('auth')
+            ->name('leaderboard');
+
         // Profil
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
         Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
