@@ -22,13 +22,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
 
-    // Onboarding (harus login tapi belum onboarding)
     Route::get('/onboarding/step1', [OnboardingController::class, 'step1'])->name('onboarding.step1');
     Route::post('/onboarding/step1', [OnboardingController::class, 'step1Save'])->name('onboarding.step1.save');
     Route::get('/onboarding/step2', [OnboardingController::class, 'step2'])->name('onboarding.step2');
     Route::post('/onboarding/step2', [OnboardingController::class, 'step2Save'])->name('onboarding.step2.save');
 
-    // Harus sudah onboarding
     Route::middleware(['onboarded'])->group(function () {
 
         // Dashboard/Discover

@@ -276,6 +276,7 @@
             </a>
 
             <div class="hidden items-center gap-8 md:flex">
+<<<<<<< Updated upstream
                 <a href="{{ route('dashboard') }}"
                     class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('dashboard') ? 'text-foreground' : 'text-muted-foreground' }}">
                     Discover
@@ -292,6 +293,14 @@
                     class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('profile*') ? 'text-foreground' : 'text-muted-foreground' }}">
                     Profil
                 </a>
+=======
+                <a href="#discover" class="text-sm text-foreground">Discover</a>
+                <button type="button" @click="requestsOpen = true" class="relative text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    Requests
+                    <span class="absolute -right-4 -top-3 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-medium text-black">2</span>
+                </button>
+                <a href="{{ route('profile') }}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Profil</a>
+>>>>>>> Stashed changes
             </div>
 
             <div class="flex items-center gap-2.5">
@@ -314,7 +323,7 @@
                     </span>
                 </div>
 
-                <button type="button" id="profile" class="liquid-glass grid h-10 w-10 place-items-center overflow-hidden rounded-full text-sm font-medium text-foreground" aria-label="Profil">
+                <a href="{{ route('profile') }}" class="liquid-glass grid h-10 w-10 place-items-center overflow-hidden rounded-full text-sm font-medium text-foreground" aria-label="Profil">
                     @if ($user['photo_url'])
                         <img
                             src="{{ $user['photo_url'] }}"
@@ -324,7 +333,7 @@
                     @else
                         {{ $user['initials'] }}
                     @endif
-                </button>
+                </a>
 
                 <button type="button" @click="logoutOpen = true; $nextTick(() => lucide.createIcons())" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
                     <i data-lucide="log-out" class="h-4 w-4"></i>
@@ -387,7 +396,7 @@
                         x-transition.opacity.duration.200ms
                         class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                     >
-                        <div class="flex items-center justify-between gap-4">
+                        <a href="{{ route('profile.show', $partner['id']) }}" class="flex items-center justify-between gap-4">
                             <span
                                 class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground"
                                 title="{{ $partner['badge']['nama'] }} · {{ number_format($partner['xp']) }} XP"
@@ -398,9 +407,9 @@
                             @if ($partner['city'])
                                 <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
                             @endif
-                        </div>
+                        </a>
 
-                        <div class="mt-6 flex items-center gap-4">
+                        <a href="{{ route('profile.show', $partner['id']) }}" class="mt-6 flex items-center gap-4">
                             @if ($partner['photo_url'])
                                 <img
                                     src="{{ $partner['photo_url'] }}"
@@ -418,7 +427,7 @@
                                     <p class="text-sm text-muted-foreground">{{ $partner['category'] }}</p>
                                 @endif
                             </div>
-                        </div>
+                        </a>
 
                         <div class="mt-5 flex items-start gap-2 text-sm text-muted-foreground">
                             <i data-lucide="graduation-cap" class="mt-0.5 h-4 w-4 shrink-0"></i>
@@ -486,7 +495,7 @@
                             x-transition.opacity.duration.200ms
                             class="surface group rounded-[28px] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20"
                         >
-                            <div class="flex items-center justify-between gap-4">
+                            <a href="{{ route('profile.show', $partner['id']) }}" class="flex items-center justify-between gap-4">
                                 <span
                                     class="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground"
                                     title="{{ $partner['badge']['nama'] }} · {{ number_format($partner['xp']) }} XP"
@@ -497,9 +506,9 @@
                                 @if ($partner['city'])
                                     <span class="text-xs text-muted-foreground">{{ $partner['city'] }}</span>
                                 @endif
-                            </div>
+                            </a>
 
-                            <div class="mt-6 flex items-center gap-4">
+                            <a href="{{ route('profile.show', $partner['id']) }}" class="mt-6 flex items-center gap-4">
                                 @if ($partner['photo_url'])
                                     <img
                                         src="{{ $partner['photo_url'] }}"
@@ -517,7 +526,7 @@
                                         <p class="text-sm text-muted-foreground">{{ $partner['category'] }}</p>
                                     @endif
                                 </div>
-                            </div>
+                            </a>
 
                             <div class="mt-5 flex items-start gap-2 text-sm text-muted-foreground">
                                 <i data-lucide="graduation-cap" class="mt-0.5 h-4 w-4 shrink-0"></i>
@@ -619,7 +628,7 @@
 
             <div class="mt-8 space-y-4">
                 <template x-for="request in incomingRequests" :key="request.id">
-                    <div class="surface-soft rounded-[24px] p-5">
+                    <div class="surface-soft rounded-3xl p-5">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="font-medium" x-text="request.name"></p>
@@ -696,7 +705,7 @@
     </div>
 
     <!-- Toast -->
-    <div x-cloak x-show="toast.show" x-transition class="fixed bottom-5 right-5 z-[60] max-w-sm rounded-2xl border border-white/10 bg-black/80 px-5 py-4 text-sm text-white shadow-2xl backdrop-blur-xl">
+    <div x-cloak x-show="toast.show" x-transition class="fixed bottom-5 right-5 z-60 max-w-sm rounded-2xl border border-white/10 bg-black/80 px-5 py-4 text-sm text-white shadow-2xl backdrop-blur-xl">
         <div class="flex items-start gap-3">
             <i data-lucide="check-circle-2" class="mt-0.5 h-4 w-4 shrink-0"></i>
             <span x-text="toast.message"></span>
