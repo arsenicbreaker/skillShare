@@ -161,7 +161,7 @@
             </a>
 
             <div class="flex items-center gap-2.5">
-                <a href="{{ route('dashboard') }}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Discover</a>
+                <a href="{{ route('dashboard') }}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Beranda</a>
                 <a href="{{ route('profile') }}" class="liquid-glass ml-2 grid h-10 w-10 place-items-center rounded-full text-sm font-medium text-foreground" aria-label="Profil">
                     <i class="bi bi-person-circle"></i>
                 </a>

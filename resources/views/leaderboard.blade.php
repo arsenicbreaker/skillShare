@@ -154,7 +154,7 @@
             <div class="hidden items-center gap-8 md:flex">
                 <a href="{{ route('dashboard') }}"
                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('dashboard') ? 'text-foreground' : 'text-muted-foreground' }}">
-                    Discover
+                    Beranda
                 </a>
                 <a href="{{ route('swap.index') }}"
                    class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('swap*') ? 'text-foreground' : 'text-muted-foreground' }}">
