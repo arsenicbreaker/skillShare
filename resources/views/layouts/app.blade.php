@@ -150,6 +150,31 @@
     </style>
 </head>
 <body>
+@php
+    $navUser = auth()->user();
+
+    $navInitials = '';
+    $navPhotoUrl = null;
+
+    if ($navUser) {
+        $nameParts = preg_split('/\s+/', trim((string) $navUser->name)) ?: [];
+        $navInitials = collect($nameParts)
+            ->filter()
+            ->take(2)
+            ->map(fn ($part) => strtoupper(mb_substr($part, 0, 1)))
+            ->implode('');
+
+        if ($navInitials === '') {
+            $navInitials = strtoupper(mb_substr((string) $navUser->name, 0, 1));
+        }
+
+        if (filled($navUser->photo)) {
+            $navPhotoUrl = str_starts_with($navUser->photo, 'http://') || str_starts_with($navUser->photo, 'https://')
+                ? $navUser->photo
+                : asset('storage/' . ltrim($navUser->photo, '/'));
+        }
+    }
+@endphp
 
 <div class="stars-bg" id="stars-layout" aria-hidden="true"></div>
 
@@ -162,8 +187,14 @@
 
             <div class="flex items-center gap-2.5">
                 <a href="{{ route('dashboard') }}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Beranda</a>
-                <a href="{{ route('profile') }}" class="liquid-glass ml-2 grid h-10 w-10 place-items-center rounded-full text-sm font-medium text-foreground" aria-label="Profil">
-                    <i class="bi bi-person-circle"></i>
+                <a href="{{ route('profile') }}" class="liquid-glass ml-2 grid h-10 w-10 place-items-center overflow-hidden rounded-full text-sm font-medium text-foreground" aria-label="Profil {{ $navUser?->name ?? '' }}">
+                    @if ($navPhotoUrl)
+                        <img src="{{ $navPhotoUrl }}" alt="{{ $navUser->name }}" class="h-full w-full object-cover">
+                    @elseif ($navUser)
+                        {{ $navInitials }}
+                    @else
+                        <i class="bi bi-person-circle"></i>
+                    @endif
                 </a>
                 <form action="{{ route('logout') }}" method="POST">
                     @csrf
