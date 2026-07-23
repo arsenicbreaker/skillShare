@@ -6,7 +6,172 @@
 @php
     $teachIds = $user->userSkills->where('type', 'ajarkan')->pluck('skill_id')->toArray();
     $learnIds = $user->userSkills->where('type', 'pelajari')->pluck('skill_id')->toArray();
+    $selectedTeachIds = collect(old('teach', $teachIds))->map(fn ($id) => (int) $id)->filter()->values()->all();
+    $selectedLearnIds = collect(old('learn', $learnIds))->map(fn ($id) => (int) $id)->filter()->values()->all();
+    $skillNames = $categories
+        ->flatMap(fn ($category) => $category->skills)
+        ->mapWithKeys(fn ($skill) => [(string) $skill->id => $skill->name])
+        ->all();
 @endphp
+
+<style>
+    .profile-skill-head {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .profile-skill-head strong {
+        color: white;
+        font-weight: 600;
+    }
+
+    .profile-skill-search {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .profile-skill-search input {
+        width: 100%;
+        padding: 10px 14px 10px 38px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: white;
+        font-size: 0.875rem;
+        outline: none;
+        transition: border 0.2s;
+    }
+
+    .profile-skill-search input:focus {
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .profile-skill-search input::placeholder {
+        color: rgba(255, 255, 255, 0.25);
+    }
+
+    .profile-skill-search .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 0.9rem;
+        pointer-events: none;
+    }
+
+    .profile-skill-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+        padding-right: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .profile-skill-grid::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .profile-skill-grid::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .profile-skill-grid::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 9999px;
+    }
+
+    .profile-skill-chip {
+        min-height: 42px;
+        padding: 10px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.8rem;
+        line-height: 1.25;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        user-select: none;
+    }
+
+    .profile-skill-chip:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .profile-skill-chip.selected {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: white;
+    }
+
+    .profile-skill-chip.hidden {
+        display: none;
+    }
+
+    .profile-selected-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 28px;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-selected-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        color: white;
+    }
+
+    .profile-selected-tag button {
+        background: none;
+        border: 0;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1;
+        transition: color 0.15s;
+    }
+
+    .profile-selected-tag button:hover {
+        color: white;
+    }
+
+    .profile-skill-divider {
+        border: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        margin: 1.75rem 0;
+    }
+
+    @media (max-width: 640px) {
+        .profile-skill-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>
 
 <div class="max-w-2xl mx-auto">
     <div class="surface rounded-[28px] p-8 md:p-10 animate-fade-rise">
@@ -111,37 +276,71 @@
 
                 <div id="skillError" class="hidden surface-soft rounded-2xl p-3 mb-3 text-sm text-red-300"></div>
 
-                <div class="surface-soft rounded-2xl overflow-hidden">
-                    <div class="grid grid-cols-3 text-xs font-semibold text-muted-foreground uppercase px-4 py-3 border-b border-white/10">
-                        <span>Skill</span>
-                        <span class="text-center">Ajarkan</span>
-                        <span class="text-center">Pelajari</span>
-                    </div>
-                    <div class="max-h-80 overflow-y-auto divide-y divide-white/5">
-                        @foreach($categories as $category)
-                            <div class="px-4 py-2 text-sm font-semibold text-muted-foreground bg-white/2">
-                                {{ $category->name }}
-                            </div>
-                            @foreach($category->skills as $skill)
-                                <div class="grid grid-cols-3 items-center px-4 py-2.5">
-                                    <span class="text-sm text-foreground">{{ $skill->name }}</span>
-                                    <div class="text-center">
-                                        <input type="checkbox" name="teach[]" value="{{ $skill->id }}"
-                                               class="teach-checkbox w-4 h-4 accent-white"
-                                               data-skill="{{ $skill->id }}"
-                                               {{ in_array($skill->id, old('teach', $teachIds)) ? 'checked' : '' }}>
-                                    </div>
-                                    <div class="text-center">
-                                        <input type="checkbox" name="learn[]" value="{{ $skill->id }}"
-                                               class="learn-checkbox w-4 h-4 accent-white"
-                                               data-skill="{{ $skill->id }}"
-                                               {{ in_array($skill->id, old('learn', $learnIds)) ? 'checked' : '' }}>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @endforeach
-                    </div>
+                @error('teach')
+                    <p class="mb-3 text-xs text-red-300">{{ $message }}</p>
+                @enderror
+                <div class="profile-skill-head">
+                    <strong>Bisa saya ajarkan</strong>
+                    <span>Pilih minimal 1</span>
                 </div>
+
+                <div class="profile-skill-search">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" placeholder="Cari skill..." data-skill-search="teach">
+                </div>
+
+                <div class="profile-skill-grid" id="teach-grid">
+                    @foreach ($categories as $cat)
+                        @foreach ($cat->skills as $skill)
+                            <button
+                                type="button"
+                                class="profile-skill-chip {{ in_array($skill->id, $selectedTeachIds) ? 'selected' : '' }}"
+                                data-id="{{ $skill->id }}"
+                                data-name="{{ $skill->name }}"
+                                data-section="teach"
+                            >
+                                {{ $skill->name }}
+                            </button>
+                        @endforeach
+                    @endforeach
+                </div>
+
+                <div class="profile-selected-wrap" id="teach-tags"></div>
+                <div id="teach-inputs"></div>
+
+                <hr class="profile-skill-divider">
+
+                @error('learn')
+                    <p class="mb-3 text-xs text-red-300">{{ $message }}</p>
+                @enderror
+                <div class="profile-skill-head">
+                    <strong>Ingin saya pelajari</strong>
+                    <span>Pilih minimal 1</span>
+                </div>
+
+                <div class="profile-skill-search">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" placeholder="Cari skill..." data-skill-search="learn">
+                </div>
+
+                <div class="profile-skill-grid" id="learn-grid">
+                    @foreach ($categories as $cat)
+                        @foreach ($cat->skills as $skill)
+                            <button
+                                type="button"
+                                class="profile-skill-chip {{ in_array($skill->id, $selectedLearnIds) ? 'selected' : '' }}"
+                                data-id="{{ $skill->id }}"
+                                data-name="{{ $skill->name }}"
+                                data-section="learn"
+                            >
+                                {{ $skill->name }}
+                            </button>
+                        @endforeach
+                    @endforeach
+                </div>
+
+                <div class="profile-selected-wrap" id="learn-tags"></div>
+                <div id="learn-inputs"></div>
             </div>
 
             <div class="pt-4 flex items-center justify-between gap-4">
@@ -169,33 +368,134 @@
         if (initial) initial.classList.add('hidden');
     });
 
-    document.querySelectorAll('.teach-checkbox').forEach(cb => {
-        cb.addEventListener('change', function () {
-            if (this.checked) {
-                const pair = document.querySelector(`.learn-checkbox[data-skill="${this.dataset.skill}"]`);
-                if (pair) pair.checked = false;
+    const skillNames = @js($skillNames);
+    const selected = { teach: {}, learn: {} };
+
+    @js($selectedTeachIds).forEach(id => {
+        if (skillNames[id]) selected.teach[id] = skillNames[id];
+    });
+
+    @js($selectedLearnIds).forEach(id => {
+        if (skillNames[id] && !selected.teach[id]) selected.learn[id] = skillNames[id];
+    });
+
+    function toggleSkill(section, id, name, el) {
+        if (selected[section][id]) {
+            removeSkill(section, id);
+        } else {
+            const other = section === 'teach' ? 'learn' : 'teach';
+
+            if (selected[other][id]) {
+                showSkillError(`"${name}" sudah dipilih di bagian lain. Pilih skill yang berbeda.`);
+                return;
             }
+
+            selected[section][id] = name;
+            el.classList.add('selected');
+            hideSkillError();
+        }
+
+        renderTags(section);
+        renderInputs(section);
+    }
+
+    function removeSkill(section, id) {
+        delete selected[section][id];
+
+        const chip = document.querySelector(`#${section}-grid .profile-skill-chip[data-id="${id}"]`);
+        if (chip) chip.classList.remove('selected');
+
+        renderTags(section);
+        renderInputs(section);
+    }
+
+    function renderTags(section) {
+        const wrap = document.getElementById(`${section}-tags`);
+        wrap.innerHTML = '';
+
+        Object.entries(selected[section]).forEach(([id, name]) => {
+            const tag = document.createElement('div');
+            const label = document.createElement('span');
+            const removeButton = document.createElement('button');
+
+            tag.className = 'profile-selected-tag';
+            label.textContent = name;
+            removeButton.type = 'button';
+            removeButton.textContent = '×';
+            removeButton.setAttribute('aria-label', `Hapus ${name}`);
+            removeButton.addEventListener('click', () => removeSkill(section, id));
+
+            tag.append(label, removeButton);
+            wrap.appendChild(tag);
+        });
+    }
+
+    function renderInputs(section) {
+        const wrap = document.getElementById(`${section}-inputs`);
+        wrap.innerHTML = '';
+
+        Object.keys(selected[section]).forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `${section}[]`;
+            input.value = id;
+            wrap.appendChild(input);
+        });
+    }
+
+    function filterSkills(section, query) {
+        const normalizedQuery = query.toLowerCase().trim();
+
+        document.querySelectorAll(`#${section}-grid .profile-skill-chip`).forEach(chip => {
+            const name = chip.dataset.name.toLowerCase();
+            chip.classList.toggle('hidden', normalizedQuery.length > 0 && !name.includes(normalizedQuery));
+        });
+    }
+
+    function showSkillError(message) {
+        const errBox = document.getElementById('skillError');
+        errBox.textContent = message;
+        errBox.classList.remove('hidden');
+    }
+
+    function hideSkillError() {
+        const errBox = document.getElementById('skillError');
+        errBox.textContent = '';
+        errBox.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.profile-skill-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            toggleSkill(chip.dataset.section, chip.dataset.id, chip.dataset.name, chip);
         });
     });
-    document.querySelectorAll('.learn-checkbox').forEach(cb => {
-        cb.addEventListener('change', function () {
-            if (this.checked) {
-                const pair = document.querySelector(`.teach-checkbox[data-skill="${this.dataset.skill}"]`);
-                if (pair) pair.checked = false;
-            }
+
+    document.querySelectorAll('[data-skill-search]').forEach(input => {
+        input.addEventListener('input', () => filterSkills(input.dataset.skillSearch, input.value));
+    });
+
+    document.querySelectorAll('.profile-skill-chip.selected').forEach(chip => {
+        chip.classList.remove('selected');
+    });
+
+    ['teach', 'learn'].forEach(section => {
+        Object.keys(selected[section]).forEach(id => {
+            const chip = document.querySelector(`#${section}-grid .profile-skill-chip[data-id="${id}"]`);
+            if (chip) chip.classList.add('selected');
         });
+
+        renderTags(section);
+        renderInputs(section);
     });
 
     document.getElementById('editProfileForm').addEventListener('submit', function (e) {
-        const teachCount = document.querySelectorAll('.teach-checkbox:checked').length;
-        const learnCount = document.querySelectorAll('.learn-checkbox:checked').length;
-        const errBox = document.getElementById('skillError');
+        const teachCount = Object.keys(selected.teach).length;
+        const learnCount = Object.keys(selected.learn).length;
 
         if (teachCount < 1 || learnCount < 1) {
             e.preventDefault();
-            errBox.textContent = 'Pilih minimal 1 skill untuk "Ajarkan" dan 1 skill untuk "Pelajari".';
-            errBox.classList.remove('hidden');
-            errBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showSkillError('Pilih minimal 1 skill untuk "Ajarkan" dan 1 skill untuk "Pelajari".');
+            document.getElementById('skillError').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
 </script>
