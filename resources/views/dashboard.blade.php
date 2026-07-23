@@ -271,12 +271,11 @@
 >
     <header class="relative z-10">
         <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 md:px-8 md:py-6">
-            <a href="#" class="font-display text-3xl tracking-tight text-foreground">
-                SkillShare<sup class="text-xs"></sup>
+            <a href="{{ route('dashboard') }}" class="font-display text-3xl tracking-tight text-foreground">
+                SkillShare
             </a>
 
             <div class="hidden items-center gap-8 md:flex">
-<<<<<<< Updated upstream
                 <a href="{{ route('dashboard') }}"
                     class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('dashboard') ? 'text-foreground' : 'text-muted-foreground' }}">
                     Discover
@@ -293,14 +292,6 @@
                     class="text-sm transition-colors hover:text-foreground {{ request()->routeIs('profile*') ? 'text-foreground' : 'text-muted-foreground' }}">
                     Profil
                 </a>
-=======
-                <a href="#discover" class="text-sm text-foreground">Discover</a>
-                <button type="button" @click="requestsOpen = true" class="relative text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    Requests
-                    <span class="absolute -right-4 -top-3 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-medium text-black">2</span>
-                </button>
-                <a href="{{ route('profile') }}" class="text-sm text-muted-foreground transition-colors hover:text-foreground">Profil</a>
->>>>>>> Stashed changes
             </div>
 
             <div class="flex items-center gap-2.5">
@@ -335,8 +326,8 @@
                     @endif
                 </a>
 
-                <button type="button" @click="logoutOpen = true; $nextTick(() => lucide.createIcons())" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
-                    <i data-lucide="log-out" class="h-4 w-4"></i>
+                <button type="button" @click="logoutOpen = true" class="liquid-glass grid h-10 w-10 place-items-center rounded-full text-foreground" aria-label="Keluar">
+                    <i class="bi bi-box-arrow-right text-base"></i>
                 </button>
             </div>
         </nav>
